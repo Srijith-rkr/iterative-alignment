@@ -1,0 +1,53 @@
+# Configuration file for training
+
+model:
+  model_name: 'meta-llama/Llama-2-7b-hf'  # Replace with "microsoft/phi-2" for debugging DDP
+  cache_dir: '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
+
+lora:
+  lora_alpha: 16
+  lora_dropout: 0.1
+  r: 16
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  target_modules: 'k_proj q_proj v_proj'
+
+data:
+  train_path: /home/srijithr/iterative-alignment/datasets/alpaca_poc_data/3k_quality_difference_LLaMA2_FT_3e_1e-4_52K_dataset_3e_iter1.json
+  use_key : LLaMA2_FT_3e_1e-4_52K_dataset_3e
+  output_dir: /data/tir/projects/tir7/user_data/srijithr/iter_imporv_model_outputs/${dpo.run_name}-lr${dpo.learning_rate}-bs${dpo.per_device_train_batch_size}-ga${dpo.gradient_accumulation_steps}-e${dpo.num_train_epochs}
+
+merge: 
+  do_merge:
+  adapter_path: 
+  
+dpo:
+  beta: 0.1  # The beta parameter for DPO loss
+  
+  optimizer_type: "paged_adamw_32bit"  # Optimizer type
+  warmup_steps: 100  # Number of warmup steps
+  max_grad_norm: 1.0
+
+  learning_rate: 1e-5  # Optimizer learning rate
+  lr_scheduler_type: "cosine"  # Learning rate scheduler type
+
+  num_train_epochs: 3  # Number of training epochs; will be overridden by max steps if given
+  per_device_train_batch_size: 2  # Train batch size per device; try playing with batch size
+  per_device_eval_batch_size: 2  # Eval batch size per device
+  gradient_accumulation_steps: 4  # Number of gradient accumulation steps
+  gradient_checkpointing: false  # Whether to use gradient checkpointing
+  gradient_checkpointing_use_reentrant: false  # Whether to use reentrant for gradient checkpointing
+
+  max_prompt_length: 512  # Maximum prompt length
+  max_length: 4000  # Maximum sequence length; data samples longer than this are filtered out
+
+  report_to: "wandb"  # Reporting platform; options: "azure_ml", "comet_ml", "mlflow", "neptune", "tensorboard", "clearml", "wandb", "all", "none"
+  run_name: "debugging_DPO_with_Alpaca_data"  # Name of the run
+
+  logging_steps: 10  # Logging frequency
+  save_strategy: "epoch"  # Saving strategy; set to "steps" if required
+  evaluation_strategy: "epoch"  # Evaluation strategy; set to "steps" if required
+  do_eval: true  # Whether to perform evaluation
+
+  bf16: true  # Adjust based on the GPU (e.g., A100 or 6000Ada)
+  seed: 0  # Random seed

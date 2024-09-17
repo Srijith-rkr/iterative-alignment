@@ -1,0 +1,67 @@
+run_name : debugging_spin_run
+data_path: /home/srijithr/iterative-alignment/datasets/spin_ultrachat_data/5K_iter1_full_quality_difference.json
+use_key: 5K_full_quality_difference_deita_spin0_LLaMA2_DPO_1e-5_0.1B_3e
+cache_dir: '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
+adapter_path: # 'temp_data_for_jobs/5K_full_quality_difference_deita_spin0_LLaMA2_DPO_1e-5_0.1B_3e'
+per_device_train_batch_size: 4
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 2
+learning_rate: 1.0e-7
+num_train_epochs: 5
+
+# Model arguments
+model_name_or_path: meta-llama/Llama-2-7b-hf #microsoft/phi-1_5
+use_peft: True # Is false by default 
+lora_target_modules: [ "q_proj", "v_proj", "k_proj"]
+lora_alpha: 16
+lora_dropout: 0.05
+lora_r: 16
+
+# model_revision: ac6e600eefcce74f5e8bae1035d4f66019e93190
+
+# Data training arguments - not used 
+dataset_mixer:
+  #HuggingFaceH4/ultrafeedback_binarized: 1.0
+  UCLA-AGI/SPIN_iter0: 1.0
+dataset_splits:
+- train
+- test
+preprocessing_num_workers: 1 # set to 1 to debug ; was 12
+
+# Trainer arguments
+
+fp16: true
+beta: 0.1
+do_eval: false
+evaluation_strategy: "no"
+# eval_steps: 100
+
+gradient_checkpointing: false
+hub_model_id: zephyr-7b-spin
+log_level: info
+logging_steps: 10
+lr_scheduler_type: linear
+max_length: 4000
+max_prompt_length: 512
+
+optim: rmsprop
+output_dir: outputs
+
+push_to_hub: false
+save_strategy: "epoch"
+eval_strategy: "epoch"
+save_total_limit: null
+seed: 42
+warmup_steps: 0
+warmup_ratio: 0.1
+
+
+# class ScriptArguments:
+
+
+#         output_dir= 'outputs', #script_args.output_dir,
+#         report_to=script_args.report_to,
+#         lr_scheduler_type=script_args.lr_scheduler_type,
+#         fp16=True,
+
+#         run_name="SPIN_3K_DPO_3e_1e-6_LLaMA2_FT_3e_1e-4_3K_dataset", # SRIJITH use WANDB_PROJECT environ to change project namel currently  os.getenv("WANDB_WATCH", "false")

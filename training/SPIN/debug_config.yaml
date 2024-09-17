@@ -1,0 +1,59 @@
+# Model arguments
+model_name_or_path: microsoft/phi-1_5
+adapter_path :
+use_peft: True # Is false by default 
+lora_target_modules: [ "q_proj", "v_proj", "k_proj"]
+lora_alpha: 16
+lora_dropout: 0.05
+lora_r: 16
+
+# model_revision: ac6e600eefcce74f5e8bae1035d4f66019e93190
+
+# Data training arguments
+dataset_mixer:
+  #HuggingFaceH4/ultrafeedback_binarized: 1.0
+  UCLA-AGI/SPIN_iter0: 1.0
+dataset_splits:
+- train
+- test
+preprocessing_num_workers: 1 # set to 1 to debug ; was 12
+
+# Trainer arguments
+run_name : temp_Debugging
+fp16: true
+beta: 0.1
+do_eval: false
+evaluation_strategy: "no"
+# eval_steps: 100
+gradient_accumulation_steps: 1
+gradient_checkpointing: true
+hub_model_id: zephyr-7b-spin
+learning_rate: 5.0e-7
+log_level: info
+logging_steps: 10
+lr_scheduler_type: linear
+max_length: 4000
+max_prompt_length: 512
+num_train_epochs: 3
+optim: rmsprop
+output_dir: outputs
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+push_to_hub: false
+save_strategy: "epoch"
+eval_strategy: "epoch"
+save_total_limit: null
+seed: 42
+warmup_steps: 0
+warmup_ratio: 0.1
+
+
+# class ScriptArguments:
+
+
+#         output_dir= 'outputs', #script_args.output_dir,
+#         report_to=script_args.report_to,
+#         lr_scheduler_type=script_args.lr_scheduler_type,
+#         fp16=True,
+
+#         run_name="SPIN_3K_DPO_3e_1e-6_LLaMA2_FT_3e_1e-4_3K_dataset", # SRIJITH use WANDB_PROJECT environ to change project namel currently  os.getenv("WANDB_WATCH", "false")

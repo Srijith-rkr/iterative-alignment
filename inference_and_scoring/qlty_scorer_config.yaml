@@ -1,0 +1,8 @@
+model:
+  model_name: # complxity or quality scorer is set by the code
+  cache_dir:  '/data/tir/projects/tir7/user_data/srijithr/hf_cache_dir'
+   
+data:
+  train_path: /home/srijithr/iterative-alignment/datasets/alpaca_data_full.json
+  dataset_note: 'alpaca_data_full'
+  output_dir:  /data/tir/projects/tir7/user_data/srijithr/iter_imporv_model_outputs/scorer_outputs/quality_score_${data.dataset_note}
