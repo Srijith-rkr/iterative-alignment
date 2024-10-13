@@ -1,0 +1,111 @@
+conda create -n spin python=3.10
+
+install older torch 2.1.0
+conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia
+
+accelerate launch --config_file configs/multi_gpu_debug.yaml --main_process_port 29500 spin/run_spin.py configs/config_debug.yaml
+
+
+GPU Training time chart:
+
+L40 :46GB VRAM
+bf16 : TRUE
+
+above entry might be with zero stage 1 and wrote it by mistake -
+going to zero stage 2
+Zeros stage 2
+35.7 GB 
+16.5 Hours
+BS 1 
+
+Zeros stage 1
+37.9  GB 
+15.5 Hours
+BS 1 
+
+Zero Stage 3
+39.8  GB 
+30 Hours
+BS 1 
+
+
+Vanilla 
+OOM with BS 1 
+OOM with BS 2
+
+_______________
+Things I tried 
+ConnectionError: Tried to launch distributed communication on port `29500`, but another process is utilizing it. Please specify a different port (such as using the `----main_process_port` flag or specifying a different `main_process_port` in your config file) and rerun your script. To automatically use the next open port (on a single node), you can set this to `0`.
+- Set to port 0
+
+  File "/home/srijithr/iterative-alignment/SPIN_implementation/SPIN/spin/alignment/configs.py", line 54, in <dictcomp>
+    other_args = {arg.split("=")[0].strip("-"): arg.split("=")[1] for arg in other_args}
+IndexError: list index out of range
+inlude '=' after you pass flags
+
+[E socket.cpp:922] [c10d] The client socket has timed out after 1800s while trying to connect to (127.0.0.1, 0).
+setting to 0 does not automaticall take avalable port 
+
+
+cpu_SPIN_iter0_A6000_1e-5__721998.err
+in StepId=721998.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
+Provided more CPU memory when launching jobbs
+
+port0_SPIN_iter0_A6000_1e-5__722042.err
+to verify if setting port to str(0) (`0`) helped 
+
+
+
+-rw-rw-r-- 1 srijithr srijithr 10005 Sep 29 19:51 DP2_SPIN_iter0_L40_1e-5__722371.err
+-rw-rw-r-- 1 srijithr srijithr  9798 Sep 29 18:57 DP3_SPIN_iter0_A6000_1e-5__722366.err
+-rw-rw-r-- 1 srijithr srijithr  9798 Sep 29 18:56 DP2_SPIN_iter0_A6000_1e-5__722364.err
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=722366.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
+I think even at this point I did not figure out the cpu memory issue and was still that CUDA memory was getting exhausted - but subsequent runs I allotted more memory but maybe did not point the config file to cpu memory
+
+128CpuMem_SPIN_iter0_A6000_1e-5__722704.err
+64CpuMem_SPIN_iter0_A6000_1e-5__722697.err
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=722704.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
+CPU memory was not enough here also 
+
+
+I AM AN ABSOLUTE IDIOT 
+256CpuMem_SPIN_iter0_A6000_1e-5__722848
+The code ran and the model was training during this - it predicted 6 hours for training. CUDA OOM happend here on
+middle here - I should proabbly do zero stage 2 
+WORKING THEORY : Looking bottom up, 512 CPU mem faile becase the port I was using was alread in use.
+RuntimeError: The server socket has failed to listen on any local network address. The server socket has failed to bind to [::]:29503 (errno: 98 - Address already in use). The server socket has failed to bind to 0.0.0.0:29503 (errno: 98 - Address already in use).
+
+
+Looking at my naming conventiosn 64CpuMem_SPIN_iter0_A6000_1e-5__722697, 64CpuMem_SPIN_iter0_A6000_1e-5__722697, 512CpuMem_SPIN_iter0_A6000_1e-5__722849
+CpuOffload_256_SPIN_iter0_A6000_1e-5 and  256CpuMem_SPIN_iter0_A6000_1e-5__722848.
+I probably schedule 256cpu mem before the CpuOffload_256* but the offload run ended up running before. The code was 
+working at this point, which means all the erros I got came after I set the optmizer store states to cpu or nvme from None
+I would have been saved if the 512 run had worked out but the port was already in use and I made a mistake. Current learning is 
+you need minimum 256 gb cpu 
+stage 1 is not enough - either go to stage 2 or reduce context length -- SRIJITH TO RUN 
+You can removed the skip ds flag also 
+
+
+-rw-rw-r-- 1 srijithr srijithr 26264 Sep 30 18:44 NVMEreinstallDS_skip_check_spin_170_SPIN_iter0_A6000_1e-5__724968.err
+-rw-rw-r-- 1 srijithr srijithr 26381 Sep 30 18:43 NVMEreinstallDS_skip_check_spin_DS_170_SPIN_iter0_A6000_1e-5__724911.err
+-rw-rw-r-- 1 srijithr srijithr 26492 Sep 30 18:42 reinstallDS_skip_check_spin_DS_170_SPIN_iter0_A6000_1e-5__724901.err
+-rw-rw-r-- 1 srijithr srijithr 26264 Sep 30 16:23 skip_check_spin_170_SPIN_iter0_A6000_1e-5__724794.err
+-rw-rw-r-- 1 srijithr srijithr 26492 Sep 30 16:22 skip_check_spin_DS_170_SPIN_iter0_A6000_1e-5__724791.err
+-rw-rw-r-- 1 srijithr srijithr 22984 Sep 30 15:14 spin_ds_170_SPIN_iter0_A6000_1e-5__724595.err
+-rw-rw-r-- 1 srijithr srijithr 22984 Sep 30 15:14 nvme_spin_ds_170_SPIN_iter0_A6000_1e-5__724594.err
+-rw-rw-r-- 1 srijithr srijithr 22979 Sep 30 13:35 nvme_spin_dp_170_SPIN_iter0_A6000_1e-5__724022.err
+-rw-rw-r-- 1 srijithr srijithr 22979 Sep 30 13:34 spin_dp_170_SPIN_iter0_A6000_1e-5__724005.err
+-rw-rw-r-- 1 srijithr srijithr 97655 Sep 30 05:34 256CpuMem_SPIN_iter0_A6000_1e-5__722848.err
+-rw-rw-r-- 1 srijithr srijithr 22816 Sep 30 01:54 CpuOffload_256_SPIN_iter0_A6000_1e-5__722851.err
+-rw-rw-r-- 1 srijithr srijithr  3628 Sep 30 01:52 512CpuMem_SPIN_iter0_A6000_1e-5__722849.err
+-rw-rw-r-- 1 srijithr srijithr 12201 Sep 29 21:30 64CpuMem_SPIN_iter0_A6000_1e-5__722697.err
+
+
+
+
+
+NoneConfig_stage2_spin_256_SPIN_iter0_A6000_1e-5
+Changed the config to None | working under the assumtion the cpu adam problems comes when you set it to cpu or nvme since it worked last time
+Last time it had a cuda oom of _ scheduled a zero stage 2 run
+I have scheduled one more run with stage 1 but I redeuced the context length to 800 
+NoneConfig_stage1_800_spin_256_SPIN_iter0_A6000_1e-5
